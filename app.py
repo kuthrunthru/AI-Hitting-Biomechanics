@@ -1098,6 +1098,13 @@ METRIC_LABELS = {
     "kinematic_sequence": "Kinematic Sequence (Peak Speeds Order)",
 }
 
+KINEMATIC_LABELS = {
+    "pelvis": "hips",
+    "torso": "torso",
+    "arms": "arms",
+    "bat": "bat",
+}
+
 METRIC_UNITS = {
     "negative_move_in": "inches",
     "hip_coil_deg": "degrees",
@@ -1551,6 +1558,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
