@@ -610,7 +610,7 @@ def metric_explanation(metric_id, raw_value):
             return base
 
         order = sorted(v.items(), key=lambda kv: kv[1])
-        order_labels = " → ".join(name for name, _ in order)
+        order_labels = " → ".join(KINEMATIC_LABELS.get(name, name) for name, _ in order)
         detail = f" In this swing, peak speeds happened in this order: **{order_labels}**."
         return base + detail
 
@@ -1558,6 +1558,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
