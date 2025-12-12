@@ -8,6 +8,31 @@ import mediapipe as mp
 import imageio.v2 as imageio
 import streamlit as st
 
+import numpy as np
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision as mp_vision
+
+MODEL_PATH = "pose_landmarker_full.task"
+
+@st.cache_resource
+def get_pose_landmarker():
+    BaseOptions = mp_python.BaseOptions
+    PoseLandmarker = mp_vision.PoseLandmarker
+    PoseLandmarkerOptions = mp_vision.PoseLandmarkerOptions
+    RunningMode = mp_vision.RunningMode
+
+    options = PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=MODEL_PATH),
+        running_mode=RunningMode.IMAGE,
+        num_poses=1,
+        min_pose_detection_confidence=0.5,
+        min_pose_presence_confidence=0.5,
+    )
+    return PoseLandmarker.create_from_options(options)
+
+def tasks_landmarks_to_px(lm_list, w, h):
+    return [(lm.x * w, lm.y * h) for lm in lm_list]
+
 # ----------------- CONSTANTS ----------------- #
 
 GIF_FPS = 4
@@ -1163,7 +1188,7 @@ def top_issues_text(metrics):
 def detect_best_rotation(input_path):
     """
     Tries multiple rotations (including 180°) and picks the one most likely to be "heads up".
-    This fixes clips that come in upside down.
+    Uses MediaPipe Tasks (local model) to avoid runtime downloads on Streamlit Cloud.
     """
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
@@ -1174,49 +1199,49 @@ def detect_best_rotation(input_path):
     if not ret:
         return None
 
-    mp_pose = mp.solutions.pose
-    PL = mp_pose.PoseLandmark
-
     best_rot = None
     best_score = -1e18
 
-    with mp_pose.Pose(static_image_mode=True, model_complexity=2) as pose:
-        for rot in [None, "cw", "ccw", "180"]:
-            test = frame.copy()
-            if rot == "cw":
-                test = cv2.rotate(test, cv2.ROTATE_90_CLOCKWISE)
-            elif rot == "ccw":
-                test = cv2.rotate(test, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            elif rot == "180":
-                test = cv2.rotate(test, cv2.ROTATE_180)
+    landmarker = get_pose_landmarker()
 
-            h, w = test.shape[:2]
-            result = pose.process(cv2.cvtColor(test, cv2.COLOR_BGR2RGB))
-            if not result.pose_landmarks:
-                continue
+    for rot in [None, "cw", "ccw", "180"]:
+        test = frame.copy()
+        if rot == "cw":
+            test = cv2.rotate(test, cv2.ROTATE_90_CLOCKWISE)
+        elif rot == "ccw":
+            test = cv2.rotate(test, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        elif rot == "180":
+            test = cv2.rotate(test, cv2.ROTATE_180)
 
-            lm = result.pose_landmarks.landmark
-            xs = [p.x * w for p in lm]
-            ys = [p.y * h for p in lm]
-            vertical_span = max(ys) - min(ys)
-            horizontal_span = max(xs) - min(xs)
+        h, w = test.shape[:2]
+        frame_rgb = cv2.cvtColor(test, cv2.COLOR_BGR2RGB)
 
-            nose_y = lm[PL.NOSE.value].y * h
-            aL_y = lm[PL.LEFT_ANKLE.value].y * h
-            aR_y = lm[PL.RIGHT_ANKLE.value].y * h
-            ankles_y = (aL_y + aR_y) / 2.0
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+        result = landmarker.detect(mp_image)
 
-            # Heads-up bias: nose should be ABOVE ankles (smaller y in image coords)
-            heads_up_bonus = 1500.0 if nose_y < ankles_y else -1500.0
+        if not result.pose_landmarks:
+            continue
 
-            score = (vertical_span - horizontal_span) + heads_up_bonus
+        lm_norm = result.pose_landmarks[0]  # 33 landmarks
+        pts = tasks_landmarks_to_px(lm_norm, w, h)
 
-            if score > best_score:
-                best_score = score
-                best_rot = rot
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        vertical_span = max(ys) - min(ys)
+        horizontal_span = max(xs) - min(xs)
+
+        # Standard indices: 0=nose, 27=left ankle, 28=right ankle
+        nose_y = pts[0][1]
+        ankles_y = (pts[27][1] + pts[28][1]) / 2.0
+
+        heads_up_bonus = 1500.0 if nose_y < ankles_y else -1500.0
+        score = (vertical_span - horizontal_span) + heads_up_bonus
+
+        if score > best_score:
+            best_score = score
+            best_rot = rot
 
     return best_rot
-
 
 def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=200):
     """
@@ -1505,3 +1530,4 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
