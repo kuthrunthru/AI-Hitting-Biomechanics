@@ -19,6 +19,9 @@
 import math
 import uuid
 import statistics
+# TODO: Uploaded videos are displayed (look for where videos uploaded by users are shown/previewed)
+# TODO: Final overall score is rendered (look for the section where the final score/result is output to the user)
+# TODO: Scoring thresholds are defined (look for numeric thresholds used for grading/scoring analysis)
 
 import cv2
 import mediapipe as mp
@@ -493,26 +496,26 @@ def metric_explanation(metric_id, raw_value):
             detail = f" In this swing, your hip coil was about {v:.1f}°."
         return base + detail
 
-    # Upper Torso Coil
+    # Upper Body Coil
     if mid == "upper_torso_coil_deg":
         base = (
-            "This measures how much your upper body (shoulders/torso) coils away from the pitcher during your load. "
+            "This measures how much your upper body (shoulders/body) coils away from the pitcher during your load. "
             "A good coil helps create stretch without over-wrapping."
         )
         if v is None:
             return base
-
         if v < 8.0:
-            detail = f" In this swing, your upper torso coil was about {v:.1f}°, which is low (red)."
+            detail = f" In this swing, your upper body coil was about {v:.1f}°, which is low (red)."
         elif v < 12.0:
-            detail = f" In this swing, your upper torso coil was about {v:.1f}°, which is a bit light (yellow)."
+            detail = f" In this swing, your upper body coil was about {v:.1f}°, which is a bit light (yellow)."
         elif v <= 40.0:
-            detail = f" In this swing, your upper torso coil was about {v:.1f}°, which is in the green range."
+            detail = f" In this swing, your upper body coil was about {v:.1f}°, which is in the green range."
         elif v <= 50.0:
-            detail = f" In this swing, your upper torso coil was about {v:.1f}°, which is getting high (yellow)."
+            detail = f" In this swing, your upper body coil was about {v:.1f}°, which is getting high (yellow)."
         else:
-            detail = f" In this swing, your upper torso coil was about {v:.1f}°, which is very high (red) and may indicate wrapping."
+            detail = f" In this swing, your upper body coil was about {v:.1f}°, which is very high (red) and may indicate wrapping."
         return base + detail
+
 
     # Hip–Shoulder Separation at Foot Plant
     if mid == "hip_shoulder_sep_foot_plant_deg":
@@ -556,22 +559,22 @@ def metric_explanation(metric_id, raw_value):
     # Rear Elbow Connection
     if mid == "rear_elbow_connection_in":
         base = (
-            "This measures how far your rear elbow moves away from your torso as the swing starts (just after foot plant). "
+            "This measures how far your rear elbow moves away from your body as the swing starts (just after foot plant). "
             "We’re aiming for a connected move without being overly pinned."
         )
         if v is None:
             return base
 
         if v < 6.0:
-            detail = f" In this swing, the rear elbow stayed about {v:.2f}\" from the torso (red: very tight/pinned)."
+            detail = f" In this swing, the rear elbow stayed about {v:.2f}\" from the body (red: very tight/pinned)."
         elif v < 8.0:
-            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the torso (yellow: a bit tight)."
+            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the body (yellow: a bit tight)."
         elif v <= 15.0:
-            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the torso (green)."
+            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the body (green)."
         elif v <= 20.0:
-            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the torso (yellow: starting to get away)."
+            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the body (yellow: starting to get away)."
         else:
-            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the torso (red: disconnected/flying)."
+            detail = f" In this swing, the rear elbow was about {v:.2f}\" from the body (red: disconnected/flying)."
         return base + detail
 
     # Head Rise After Foot Plant
@@ -615,14 +618,19 @@ def metric_explanation(metric_id, raw_value):
     # Kinematic Sequence
     if mid == "kinematic_sequence":
         base = (
-            "This checks whether the hips, torso, arms, and bat reach their top turning speed in the right order. "
-            "Ideal: hips → torso → arms → bat."
+            "This checks whether the hips, body, arms, and bat reach their top turning speed in the right order. "
+            "Ideal: hips → body → arms → bat."
         )
         if not isinstance(v, dict):
             return base
 
         order = sorted(v.items(), key=lambda kv: kv[1])
-        order_labels = " → ".join(KINEMATIC_LABELS.get(name, name) for name, _ in order)
+        # Change "torso" to "body" in the user-facing sequence label but leave internal dict keys unchanged
+        def kin_label(name):
+            if name == "torso":
+                return "body"
+            return KINEMATIC_LABELS.get(name, name)
+        order_labels = " → ".join(kin_label(name) for name, _ in order)
         detail = f" In this swing, peak speeds happened in this order: **{order_labels}**."
         return base + detail
 
@@ -661,7 +669,7 @@ def metric_improvement_tip(metric_id, raw_value):
             return None
         if v < 12.0:
             return (
-                "To increase upper torso coil, let the lead shoulder turn in slightly during the load while keeping the head still. "
+                "To increase upper body coil, let the lead shoulder turn in slightly during the load while keeping the head still. "
                 "Cue: 'turn the chest a little into the catcher.'"
             )
         return (
@@ -727,7 +735,9 @@ def metric_improvement_tip(metric_id, raw_value):
             return None
         ideal = ["pelvis", "torso", "arms", "bat"]
         actual = [name for name, _ in sorted(v.items(), key=lambda kv: kv[1])]
-        if actual == ideal:
+        ideal_user = [n if n != "torso" else "body" for n in ideal]
+        actual_user = [n if n != "torso" else "body" for n in actual]
+        if actual_user == ideal_user:
             return None
         return (
             "Use drills that let the lower body start the swing (step-behind / walk-through). "
@@ -937,7 +947,7 @@ def compute_hitting_metrics(frames_landmarks, handedness="R", fps=30.0):
     else:
         hip_coil_deg = 0.0
 
-    # --- Upper Torso Coil (Upper Body Load) ---
+    # --- Upper Body Coil (Upper Body Load) ---
     if torso_angle:
         load_end = max(0, min(foot_down_idx, n - 1))
         baseline_end = min(load_end, 4)
@@ -1073,7 +1083,7 @@ def compute_hitting_metrics(frames_landmarks, handedness="R", fps=30.0):
     metrics["scores"] = metric_score_values
 
     # Overall weights (performance realism) — per your guidance:
-    # lowest weight: negative move, upper torso coil, lead-shoulder early open, head rise
+    # lowest weight: negative move, upper body coil, lead-shoulder early open, head rise
     OVERALL_WEIGHTS = {
         "kinematic_sequence": 1.8,
         "hip_shoulder_sep_foot_plant_deg": 1.6,
@@ -1098,7 +1108,7 @@ def compute_hitting_metrics(frames_landmarks, handedness="R", fps=30.0):
 METRIC_LABELS = {
     "negative_move_in": "Negative Move (Backward During Load)",
     "hip_coil_deg": "Hip Coil (Pelvis Load)",
-    "upper_torso_coil_deg": "Upper Torso Coil (Upper Body Load)",
+    "upper_torso_coil_deg": "Upper Body Coil (Upper Body Load)",
     "hip_shoulder_sep_foot_plant_deg": "Hip–Shoulder Separation at Foot Plant",
     "lead_shoulder_early_open_deg": "Lead-Shoulder Early Open (Separation Loss After Plant)",
     "rear_elbow_connection_in": "Rear Elbow Connection",
@@ -1109,7 +1119,7 @@ METRIC_LABELS = {
 
 KINEMATIC_LABELS = {
     "pelvis": "hips",
-    "torso": "torso",
+    "torso": "body",
     "arms": "arms",
     "bat": "bat",
 }
@@ -1173,9 +1183,9 @@ def top_issues_text(metrics):
                 sent = "Tune hip coil so it stays strong and repeatable."
         elif mid == "upper_torso_coil_deg":
             if v is not None and v < 12.0:
-                sent = "Add a little more upper torso coil during the load to help create stretch."
+                sent = "Add a little more upper body coil during the load to help create stretch."
             else:
-                sent = "Reduce upper torso wrapping so vision and timing stay stable."
+                sent = "Reduce upper body wrapping so vision and timing stay stable."
         elif mid == "hip_shoulder_sep_foot_plant_deg":
             if v is not None and abs(v) < 13.0:
                 sent = "Land with a bit more hip–shoulder separation so you have usable stretch at foot plant."
@@ -1190,7 +1200,7 @@ def top_issues_text(metrics):
         elif mid == "extension_through_contact_in":
             sent = "Drive through contact longer so the hands continue forward briefly after the contact moment."
         elif mid == "kinematic_sequence":
-            sent = "Improve the order of peak speeds (hips → chest → arms → bat) so energy transfers cleanly."
+            sent = "Improve the order of peak speeds (hips → body → arms → bat) so energy transfers cleanly."
         else:
             sent = f"Work on improving {METRIC_LABELS.get(mid, mid)}."
 
