@@ -1269,74 +1269,69 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
     all_frames_rgb = []
     pose_landmarks_list = []
 
-    mp_pose = mp.solutions.pose
-    mp_draw = mp.solutions.drawing_utils
-    PL = mp_pose.PoseLandmark
+    i = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    with mp_pose.Pose(model_complexity=2) as pose:
-        i = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        if rotation == "cw":
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation == "ccw":
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        elif rotation == "180":
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
 
-            if rotation == "cw":
-                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-            elif rotation == "ccw":
-                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            elif rotation == "180":
-                frame = cv2.rotate(frame, cv2.ROTATE_180)
-
+        h, w = frame.shape[:2]
+        if h > MAX_FRAME_HEIGHT:
+            scale = MAX_FRAME_HEIGHT / float(h)
+            frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
             h, w = frame.shape[:2]
-            if h > MAX_FRAME_HEIGHT:
-                scale = MAX_FRAME_HEIGHT / float(h)
-                frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
-                h, w = frame.shape[:2]
 
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = pose.process(frame_rgb)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        result = pose.process(frame_rgb)
 
-            if result.pose_landmarks:
-                lm_list = result.pose_landmarks.landmark
+        if result.pose_landmarks:
+            lm_list = result.pose_landmarks.landmark
 
-                hip_R = get_point(lm_list, PL.RIGHT_HIP.value, w, h)
-                hip_L = get_point(lm_list, PL.LEFT_HIP.value, w, h)
-                sho_R = get_point(lm_list, PL.RIGHT_SHOULDER.value, w, h)
-                sho_L = get_point(lm_list, PL.LEFT_SHOULDER.value, w, h)
-                elbow_R = get_point(lm_list, PL.RIGHT_ELBOW.value, w, h)
-                elbow_L = get_point(lm_list, PL.LEFT_ELBOW.value, w, h)
-                wrist_R = get_point(lm_list, PL.RIGHT_WRIST.value, w, h)
-                wrist_L = get_point(lm_list, PL.LEFT_WRIST.value, w, h)
-                ankle_R = get_point(lm_list, PL.RIGHT_ANKLE.value, w, h)
-                ankle_L = get_point(lm_list, PL.LEFT_ANKLE.value, w, h)
-                head = get_point(lm_list, PL.NOSE.value, w, h)
+            hip_R = get_point(lm_list, PL.RIGHT_HIP.value, w, h)
+            hip_L = get_point(lm_list, PL.LEFT_HIP.value, w, h)
+            sho_R = get_point(lm_list, PL.RIGHT_SHOULDER.value, w, h)
+            sho_L = get_point(lm_list, PL.LEFT_SHOULDER.value, w, h)
+            elbow_R = get_point(lm_list, PL.RIGHT_ELBOW.value, w, h)
+            elbow_L = get_point(lm_list, PL.LEFT_ELBOW.value, w, h)
+            wrist_R = get_point(lm_list, PL.RIGHT_WRIST.value, w, h)
+            wrist_L = get_point(lm_list, PL.LEFT_WRIST.value, w, h)
+            ankle_R = get_point(lm_list, PL.RIGHT_ANKLE.value, w, h)
+            ankle_L = get_point(lm_list, PL.LEFT_ANKLE.value, w, h)
+            head = get_point(lm_list, PL.NOSE.value, w, h)
 
-                frames_landmarks.append(
-                    {
-                        "hip_R": hip_R,
-                        "hip_L": hip_L,
-                        "sho_R": sho_R,
-                        "sho_L": sho_L,
-                        "elbow_R": elbow_R,
-                        "elbow_L": elbow_L,
-                        "wrist_R": wrist_R,
-                        "wrist_L": wrist_L,
-                        "ankle_R": ankle_R,
-                        "ankle_L": ankle_L,
-                        "head": head,
-                        "frame_w": w,
-                        "frame_h": h,
-                    }
-                )
-                all_frames_rgb.append(frame_rgb.copy())
-                pose_landmarks_list.append(result.pose_landmarks)
+            frames_landmarks.append(
+                {
+                    "hip_R": hip_R,
+                    "hip_L": hip_L,
+                    "sho_R": sho_R,
+                    "sho_L": sho_L,
+                    "elbow_R": elbow_R,
+                    "elbow_L": elbow_L,
+                    "wrist_R": wrist_R,
+                    "wrist_L": wrist_L,
+                    "ankle_R": ankle_R,
+                    "ankle_L": ankle_L,
+                    "head": head,
+                    "frame_w": w,
+                    "frame_h": h,
+                }
+            )
+            all_frames_rgb.append(frame_rgb.copy())
+            pose_landmarks_list.append(result.pose_landmarks)
 
-                if i in targets:
-                    frame_for_gif = frame_rgb.copy()
-                    mp_draw.draw_landmarks(frame_for_gif, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-                    tracked_frames.append(frame_for_gif)
+            if i in targets:
+                frame_for_gif = frame_rgb.copy()
+                mp_draw.draw_landmarks(frame_for_gif, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                tracked_frames.append(frame_for_gif)
 
-            i += 1
+        i += 1
 
     cap.release()
     return (
@@ -1530,4 +1525,5 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
