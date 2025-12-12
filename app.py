@@ -603,7 +603,7 @@ def metric_explanation(metric_id, raw_value):
     # Kinematic Sequence
     if mid == "kinematic_sequence":
         base = (
-            "This checks whether the hips, chest, arms, and bat reach their top turning speed in the right order. "
+            "This checks whether the hips, torso, arms, and bat reach their top turning speed in the right order. "
             "Ideal: hips → torso → arms → bat."
         )
         if not isinstance(v, dict):
@@ -1558,6 +1558,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
