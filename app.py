@@ -1289,10 +1289,14 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
             h, w = frame.shape[:2]
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        result = pose.process(frame_rgb)
+ 
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+        result = landmarker.detect(mp_image)
 
         if result.pose_landmarks:
-            lm_list = result.pose_landmarks.landmark
+            lm_norm = result.pose_landmarks[0]
+            pts = tasks_landmarks_to_px(lm_norm, w, h)
+
 
             hip_R = get_point(lm_list, PL.RIGHT_HIP.value, w, h)
             hip_L = get_point(lm_list, PL.LEFT_HIP.value, w, h)
@@ -1545,6 +1549,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
