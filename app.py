@@ -1300,17 +1300,17 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
             pts = tasks_landmarks_to_px(lm_norm, w, h)
 
 
-            hip_R = get_point(lm_list, PL.RIGHT_HIP.value, w, h)
-            hip_L = get_point(lm_list, PL.LEFT_HIP.value, w, h)
-            sho_R = get_point(lm_list, PL.RIGHT_SHOULDER.value, w, h)
-            sho_L = get_point(lm_list, PL.LEFT_SHOULDER.value, w, h)
-            elbow_R = get_point(lm_list, PL.RIGHT_ELBOW.value, w, h)
-            elbow_L = get_point(lm_list, PL.LEFT_ELBOW.value, w, h)
-            wrist_R = get_point(lm_list, PL.RIGHT_WRIST.value, w, h)
-            wrist_L = get_point(lm_list, PL.LEFT_WRIST.value, w, h)
-            ankle_R = get_point(lm_list, PL.RIGHT_ANKLE.value, w, h)
-            ankle_L = get_point(lm_list, PL.LEFT_ANKLE.value, w, h)
-            head = get_point(lm_list, PL.NOSE.value, w, h)
+            # Tasks landmarks are already normalized; convert to pixel points
+            lm_norm = result.pose_landmarks[0]           # 33 landmarks
+            pts = tasks_landmarks_to_px(lm_norm, w, h)   # list of (x_px, y_px)
+
+            hip_L = pts[23]; hip_R = pts[24]
+            sho_L = pts[11]; sho_R = pts[12]
+            elbow_L = pts[13]; elbow_R = pts[14]
+            wrist_L = pts[15]; wrist_R = pts[16]
+            ankle_L = pts[27]; ankle_R = pts[28]
+            head = pts[0]
+
 
             frames_landmarks.append(
                 {
@@ -1551,6 +1551,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
