@@ -1250,6 +1250,7 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
       frames_landmarks: list of dicts for metric computation
       all_frames_rgb: list of RGB frames aligned with frames_landmarks
       pose_landmarks_list: raw Mediapipe pose landmarks for each frame
+      landmarker = get_pose_landmarker()
       fps: video frames per second
     """
     cap = cv2.VideoCapture(input_path)
@@ -1549,6 +1550,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
