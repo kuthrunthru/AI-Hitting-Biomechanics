@@ -1353,13 +1353,33 @@ def save_tracked_gif(frames, output_path="tracked.gif", fps=GIF_FPS):
 
 # ----------------- SKELETON DRAWING ----------------- #
 
-def draw_skeleton_frame(pose_landmarks, base_image):
-    img = base_image.copy()
-    mp_draw = mp.solutions.drawing_utils
-    mp_pose = mp.solutions.pose
-    mp_draw.draw_landmarks(img, pose_landmarks, mp_pose.POSE_CONNECTIONS)
-    return img
+POSE_EDGES = [
+    (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
+    (11, 23), (12, 24), (23, 24),
+    (23, 25), (25, 27), (24, 26), (26, 28),
+    (25, 26),
+    (0, 11), (0, 12),
+]
 
+def draw_skeleton_frame(points_px, base_image):
+    """
+    points_px: list of 33 (x_px, y_px) points (from pose_landmarks_list)
+    """
+    img = base_image.copy()
+    if not points_px or len(points_px) < 33:
+        return img
+
+    # Draw edges
+    for a, b in POSE_EDGES:
+        ax, ay = points_px[a]
+        bx, by = points_px[b]
+        cv2.line(img, (int(ax), int(ay)), (int(bx), int(by)), (0, 255, 0), 2)
+
+    # Draw joints
+    for (x, y) in points_px:
+        cv2.circle(img, (int(x), int(y)), 3, (255, 0, 0), -1)
+
+    return img
 
 # ----------------- STREAMLIT UI ----------------- #
 
@@ -1525,5 +1545,6 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
