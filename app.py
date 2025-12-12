@@ -1332,7 +1332,7 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
 
             if i in targets:
                 frame_for_gif = frame_rgb.copy()
-                mp_draw.draw_landmarks(frame_for_gif, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                frame_for_gif = draw_skeleton_frame(pts, frame_for_gif)
                 tracked_frames.append(frame_for_gif)
 
         i += 1
@@ -1549,6 +1549,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
