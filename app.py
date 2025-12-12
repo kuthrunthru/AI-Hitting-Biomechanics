@@ -16,6 +16,7 @@
 # Summary of conversion:
 #   - Renamed all 'lm_list' parameters/variables (function headers and relevant calls) to 'pose_landmarks'
 #   - Ensure all code now operates on the pose_landmarks output from MediaPipe Tasks
+import os
 import math
 import uuid
 import statistics
@@ -1577,6 +1578,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
