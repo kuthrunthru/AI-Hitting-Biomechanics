@@ -1,5 +1,6 @@
 streamlit
+numpy<2
 opencv-python-headless
-mediapipe
+mediapipe==0.10.21
 imageio
-numpy
+protobuf<5
