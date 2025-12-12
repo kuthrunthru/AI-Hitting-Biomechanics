@@ -1269,6 +1269,7 @@ def create_tracked_frames_and_landmarks(input_path, rotation=None, max_frames=20
     frames_landmarks = []
     all_frames_rgb = []
     pose_landmarks_list = []
+    landmarker = get_pose_landmarker()
 
     i = 0
     while True:
@@ -1550,6 +1551,7 @@ if st.session_state.analysis is not None:
                 caption=f"Mediapipe Skeleton – Frame {idx + 1}/{len(frames_landmarks)}",
                 width=480,
             )
+
 
 
 
